@@ -1,5 +1,6 @@
 package gvs.distributed;
 
+import java.util.ArrayList;
 import java.util.Random;
 
 import org.zeromq.SocketType;
@@ -14,51 +15,74 @@ import org.zeromq.ZMQ.Socket;
 //
 public class Controller
 {
+
+
     public static void main(String[] args) throws Exception
     {
         try (ZContext context = new ZContext()) {
 
+            int numberOfWorkers=0;
+
+            //macht keinen sinn oder ? wir haben ja keinen bezug zu den workern
+            //wie schicken wir etwas an nen bestimmten worker, va aufm localhost verschiedene ports ?
+            //ArrayList<Worker> workers= new ArrayList<>();
+
+            //receiver for login and results
+            Socket receiver = context.createSocket(SocketType.PULL);
+            receiver.bind("tcp://localhost:5558");
+
+            while(true){
+                if(receiver.recvStr().equals("0")){
+                    numberOfWorkers++;
+                }
+
+
+                break;
+            }
+
 
             // receive challenge
-            Socket sub = context.createSocket(SocketType.SUB);
-            sub.connect("tcp://gvs.lxd-vs.uni-ulm.de:27341");
-            sub.subscribe(ZMQ.SUBSCRIPTION_ALL);
+            Socket challengeReceiver = context.createSocket(SocketType.SUB);
+            challengeReceiver.connect("tcp://gvs.lxd-vs.uni-ulm.de:27341");
+            challengeReceiver.subscribe(ZMQ.SUBSCRIPTION_ALL);
 
-            String challenge = sub.recvStr();
+            String challenge = challengeReceiver.recvStr();
             System.out.println("Die Herausforderung ist: " + challenge);
 
-            //  Socket to send messages on
-            ZMQ.Socket sender = context.createSocket(SocketType.PUSH);
-            sender.bind("tcp://localhost:5557");
+
+
 
             //  Socket to send messages on
-            //ZMQ.Socket sink = context.createSocket(SocketType.PUSH);
-            //sink.connect("tcp://localhost:5558");
-
-            System.out.println("Press Enter when the workers are ready: ");
-            System.in.read();
+            ZMQ.Socket challengeDistributer = context.createSocket(SocketType.PUSH);
+            challengeDistributer.bind("tcp://localhost:5557");
             System.out.println("Sending tasks to workers\n");
 
-            //  The first message is "0" and signals start of batch
-            //sink.send("0", 0);
 
-            //  Initialize random number generator
-            Random srandom = new Random(System.currentTimeMillis());
 
-            //  Send 100 tasks
-            int task_nbr;
-            int total_msec = 0; //  Total expected cost in msecs
-            for (task_nbr = 0; task_nbr < 100; task_nbr++) {
-                int workload;
-                //  Random workload from 1 to 100msecs
-                workload = srandom.nextInt(100) + 1;
-                total_msec += workload;
-                System.out.print(workload + ".");
-                String string = String.format("%d", workload);
-                sender.send(string, 0);
-            }
-            System.out.println("Total expected cost: " + total_msec + " msec");
-            Thread.sleep(1000); //  Give 0MQ time to deliver
+
+
+
+
+            //  get result
+            String result = new String(receiver.recv(0), ZMQ.CHARSET);
+
+
+            Socket resultSender = context.createSocket(SocketType.REQ);
+            resultSender.connect("tcp://gvs.lxd-vs.uni-ulm.de:27349");
+
+            resultSender.send(result);
+
+
+            byte[] reply = resultSender.recv(0);
+            System.out.println("Serverantwort: " + new String(reply));
+
+
+
+
+
+
+
+
         }
     }
 }
