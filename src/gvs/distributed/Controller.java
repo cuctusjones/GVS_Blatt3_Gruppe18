@@ -5,31 +5,42 @@ import java.util.Random;
 import org.zeromq.SocketType;
 import org.zeromq.ZMQ;
 import org.zeromq.ZContext;
+import org.zeromq.ZMQ.Socket;
 
 //
 //  Task ventilator in Java
 //  Binds PUSH socket to tcp://localhost:5557
 //  Sends batch of tasks to workers via that socket
 //
-public class Vent
+public class Controller
 {
     public static void main(String[] args) throws Exception
     {
         try (ZContext context = new ZContext()) {
-            //  Socket to send messages on
-            ZMQ.Socket sender = context.createSocket(SocketType.PUSH);
-            sender.bind("tcp://*:5557");
+
+
+            // receive challenge
+            Socket sub = context.createSocket(SocketType.SUB);
+            sub.connect("tcp://gvs.lxd-vs.uni-ulm.de:27341");
+            sub.subscribe(ZMQ.SUBSCRIPTION_ALL);
+
+            String challenge = sub.recvStr();
+            System.out.println("Die Herausforderung ist: " + challenge);
 
             //  Socket to send messages on
-            ZMQ.Socket sink = context.createSocket(SocketType.PUSH);
-            sink.connect("tcp://localhost:5558");
+            ZMQ.Socket sender = context.createSocket(SocketType.PUSH);
+            sender.bind("tcp://localhost:5557");
+
+            //  Socket to send messages on
+            //ZMQ.Socket sink = context.createSocket(SocketType.PUSH);
+            //sink.connect("tcp://localhost:5558");
 
             System.out.println("Press Enter when the workers are ready: ");
             System.in.read();
             System.out.println("Sending tasks to workers\n");
 
             //  The first message is "0" and signals start of batch
-            sink.send("0", 0);
+            //sink.send("0", 0);
 
             //  Initialize random number generator
             Random srandom = new Random(System.currentTimeMillis());

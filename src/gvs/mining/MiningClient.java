@@ -16,7 +16,7 @@ import java.util.concurrent.Future;
 public class MiningClient {
 
     public static int numberOfThreads = 16;
-    private static ExecutorService pool =  Executors.newFixedThreadPool(numberOfThreads);;
+    private static ExecutorService pool =  Executors.newFixedThreadPool(numberOfThreads);
 
     public static void main(String[] args) {
 
