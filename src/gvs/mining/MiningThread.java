@@ -1,9 +1,6 @@
 package gvs.mining;
 
 
-import java.io.*;
-import java.math.BigInteger;
-import java.nio.ByteBuffer;
 import java.security.NoSuchAlgorithmException;
 import java.util.concurrent.Callable;
 
@@ -29,7 +26,7 @@ public class MiningThread implements Callable {
 
         while(!util.validate(msg,attempt)) {
             if(Thread.currentThread().isInterrupted()) {
-                return new PoolReturnValue(false, attempt);
+                return new FoundValue(false, attempt);
             }
 
 
@@ -41,7 +38,7 @@ public class MiningThread implements Callable {
 
 
         }
-        return new PoolReturnValue(true, attempt);
+        return new FoundValue(true, attempt);
 
     }
 }

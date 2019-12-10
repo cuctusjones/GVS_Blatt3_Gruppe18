@@ -1,6 +1,6 @@
 package gvs.mining;
 
-public class PoolReturnValue {
+public class FoundValue {
 
     public boolean isFound() {
         return found;
@@ -14,7 +14,7 @@ public class PoolReturnValue {
 
     String result;
 
-    public PoolReturnValue(boolean found, String result) {
+    public FoundValue(boolean found, String result) {
 
         this.found = found;
         this.result = result;

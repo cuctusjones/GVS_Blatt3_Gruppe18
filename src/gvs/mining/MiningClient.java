@@ -5,8 +5,6 @@ import org.zeromq.ZMQ;
 import org.zeromq.ZMQ.Socket;
 import org.zeromq.ZContext;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
@@ -40,12 +38,12 @@ public class MiningClient {
 
 
                     boolean found = false;
-                    ArrayList<Future<PoolReturnValue>> futures = new ArrayList();
+                    ArrayList<Future<FoundValue>> futures = new ArrayList();
                     for(int i = 0; i < numberOfThreads; i++) {
                         futures.add(pool.submit(new MiningThread(challenge, i, numberOfThreads)));
                     }
                     while(!found) {
-                        for(Future<PoolReturnValue> future : futures) {
+                        for(Future<FoundValue> future : futures) {
                             if(future.isDone()) {
                                 found = true;
                                 System.out.println("Lösung gefunden: " + future.get().getResult());
@@ -56,7 +54,7 @@ public class MiningClient {
                             }
                         }
                     }
-                for(Future<PoolReturnValue> future : futures) {
+                for(Future<FoundValue> future : futures) {
                     future.cancel(true);
                 }
                 pool.shutdownNow();
