@@ -51,7 +51,7 @@ public class Controller
                 resultSender.connect("tcp://gvs.lxd-vs.uni-ulm.de:27349");
 
                 String challenge = challengeReceiver.recvStr();
-                System.out.println("Die Herausforderung ist: " + challenge);
+                System.out.println("new challenge: " + challenge);
 
                 //  Socket to send messages on
                 Socket challengeDistributer = context.createSocket(SocketType.PUSH);
@@ -59,39 +59,59 @@ public class Controller
 
 
                 //each worker which connects gets a partition
-                while (connectedWorkers != numberOfWorkers) {
+                while (true) {
 
 
                     if(receiver.recvStr().equals("0")){
 
                         System.out.println("A worker has connected.");
-
-                        challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
                         connectedWorkers++;
+                        challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
+                        if(connectedWorkers == numberOfWorkers){
+                            break;
 
+
+                        }
 
                     }
 
 
-
                 }
 
-                //while(true){
-                    System.out.println("Send tasks to workers.");
-                    challengeDistributer.send(challenge);
+            challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
+            challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
+            boolean firstTime = true;
+            while(true){
+
+                if(!firstTime){
+                    String prevChallenge = challenge;
+
+                    while(prevChallenge.equals(challenge)){
+                        challenge = challengeReceiver.recvStr();
+                    }
+
+                    System.out.println(challenge);
+                }
+
+                //System.out.println("new challenge: " + challenge);
+                System.out.println("Sent tasks to workers.");
+                challengeDistributer.send(challenge);
+                challengeDistributer.send(challenge);
 
 
-                    //  get result
-                    String result = receiver.recvStr();
-                    System.out.println("A worker found a solution: "+result);
-                    resultSender.send(result.getBytes());
+                //  get result
+                String result = receiver.recvStr();
+                System.out.println("A worker found a solution: "+result);
+
+                resultSender.send(result.getBytes());
 
 
-                    byte[] reply = resultSender.recv(0);
-                    System.out.println("Serverantwort: " + new String(reply));
+                byte[] reply = resultSender.recv(0);
+                System.out.println("server response: " + new String(reply));
 
-
-                //}
+                challengeDistributer.send("stop");
+                firstTime=false;
+            }
 
 
 

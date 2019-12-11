@@ -24,7 +24,7 @@ import org.zeromq.ZContext;
 //
 public class Worker {
 
-    public static int numberOfThreads = 16; //maybe less
+    public static int numberOfThreads = 5; //maybe less
     private static ExecutorService pool =  Executors.newFixedThreadPool(numberOfThreads);
 
     public static void main(String[] args) throws Exception {
@@ -41,29 +41,40 @@ public class Worker {
                 ZMQ.Socket sender = context.createSocket(SocketType.PUSH);
                 sender.connect("tcp://localhost:5558");
 
-                //anmeldung
-                sender.send("0");
-
                 //  Socket to receive messages on
                 ZMQ.Socket receiver = context.createSocket(SocketType.PULL);
                 receiver.connect("tcp://localhost:5557");
 
+                //anmeldung
+                sender.send("0");
 
-                //while(true) {
+                int connectedWorkers = 0;
+                int numberOfWorkers = 1;
+                int id = -1;
 
+                while(connectedWorkers!=numberOfWorkers){
                     String p = receiver.recvStr();
+                    if(id==-1){
+                        id = Integer.parseInt(p.split(",")[0]) - 1;
+                    }
+                    connectedWorkers=Integer.parseInt(p.split(",")[0]);
+                    numberOfWorkers = Integer.parseInt(p.split(",")[1]);
+                    //System.out.println(numberOfWorkers + " connectedWorkers " + connectedWorkers);
+                }
 
-                    int id = Integer.parseInt(p.split(",")[0]);
-                    int numberOfWorkers = Integer.parseInt(p.split(",")[1]);
+                while(true) {
 
-                    String challenge = null;
-                    while (challenge == null) {
+                    String challenge = "empty";
+                    while (challenge.equals("empty")) {
+
                         challenge = receiver.recvStr();
-                        if (challenge.split(",").length > 1) {
-                            challenge = null;
+
+                        if (challenge.split(",").length > 1 || challenge.equals("stop")) {
+                            challenge = "empty";
                         }
                     }
-                    System.out.println("Searching for solution for challenge " + challenge + "...");
+
+                System.out.println("Searching for solution for challenge " + challenge + "...");
                     try {
 
                         boolean found = false;
@@ -74,6 +85,11 @@ public class Worker {
                                     numberOfThreads * numberOfWorkers)));
                         }
                         while (!found) {
+                            if(receiver.recvStr(ZMQ.NOBLOCK) != null ){
+                                System.out.println("other worker found solution");
+                                break;
+                            }
+
                             for (Future<FoundValue> future : futures) {
                                 if (future.isDone()) {
                                     found = true;
@@ -89,11 +105,11 @@ public class Worker {
                         for (Future<FoundValue> future : futures) {
                             future.cancel(true);
                         }
-                        pool.shutdownNow(); // out of loop ?
+                        //pool.shutdownNow(); // out of loop ?
                     } catch (NoSuchAlgorithmException | InterruptedException | ExecutionException e) {
                         e.printStackTrace();
                     }
-                //}
+                }
 
 
 
