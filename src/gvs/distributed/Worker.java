@@ -24,7 +24,7 @@ import org.zeromq.ZContext;
 //
 public class Worker {
 
-    public static int numberOfThreads = 5; //maybe less
+    public static int numberOfThreads = 12; //
     private static ExecutorService pool =  Executors.newFixedThreadPool(numberOfThreads);
 
     public static void main(String[] args) throws Exception {
@@ -66,7 +66,7 @@ public class Worker {
 
                     String challenge = "empty";
                     while (challenge.equals("empty")) {
-
+                        //System.out.println("setting new challenge");
                         challenge = receiver.recvStr();
 
                         if (challenge.split(",").length > 1 || challenge.equals("stop")) {
@@ -86,7 +86,7 @@ public class Worker {
                         }
                         while (!found) {
                             if(receiver.recvStr(ZMQ.NOBLOCK) != null ){
-                                System.out.println("other worker found solution");
+                                //System.out.println("other worker found solution");
                                 break;
                             }
 
@@ -94,7 +94,7 @@ public class Worker {
                                 if (future.isDone()) {
                                     found = true;
                                     System.out
-                                        .println("Lösung gefunden: " + future.get().getResult());
+                                        .println("solution found: " + future.get().getResult());
                                     sender.send(future.get().getResult().getBytes(), 0);
                                     //byte[] reply = req.recv(0);
                                     //System.out.println("Serverantwort: " + new String(reply));

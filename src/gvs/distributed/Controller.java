@@ -51,7 +51,7 @@ public class Controller
                 resultSender.connect("tcp://gvs.lxd-vs.uni-ulm.de:27349");
 
                 String challenge = challengeReceiver.recvStr();
-                System.out.println("new challenge: " + challenge);
+                System.out.println("first challenge: " + challenge);
 
                 //  Socket to send messages on
                 Socket challengeDistributer = context.createSocket(SocketType.PUSH);
@@ -77,9 +77,11 @@ public class Controller
 
 
                 }
+            for(int i=0;i<numberOfWorkers;i++){
+                challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
+            }
 
-            challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
-            challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
+
             boolean firstTime = true;
             while(true){
 
@@ -90,13 +92,17 @@ public class Controller
                         challenge = challengeReceiver.recvStr();
                     }
 
-                    System.out.println(challenge);
+                    //System.out.println(challenge);
                 }
 
-                //System.out.println("new challenge: " + challenge);
+                System.out.println("new challenge: " + challenge);
+
+
+                for(int i=0;i<numberOfWorkers+1;i++){
+                    challengeDistributer.send(challenge);
+                }
                 System.out.println("Sent tasks to workers.");
-                challengeDistributer.send(challenge);
-                challengeDistributer.send(challenge);
+
 
 
                 //  get result
