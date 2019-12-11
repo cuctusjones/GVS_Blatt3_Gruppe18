@@ -24,70 +24,77 @@ import org.zeromq.ZContext;
 //
 public class Worker {
 
-    public static int numberOfThreads = 16;
+    public static int numberOfThreads = 16; //maybe less
     private static ExecutorService pool =  Executors.newFixedThreadPool(numberOfThreads);
 
     public static void main(String[] args) throws Exception {
-        try (ZContext context = new ZContext()) {
-            //  Socket to receive messages on
 
 
-            //  Socket to send messages to
-            ZMQ.Socket sender = context.createSocket(SocketType.PUSH);
-            sender.connect("tcp://localhost:5558");
 
 
-            //anmeldung
-            sender.send("0");
 
 
-            //  Socket to receive messages on
-            ZMQ.Socket receiver = context.createSocket(SocketType.PULL);
-            receiver.connect("tcp://localhost:5557");
+            try (ZContext context = new ZContext()) {
+                //  Socket to receive messages on
 
-            String p = receiver.recvStr();
+                //  Socket to send messages to
+                ZMQ.Socket sender = context.createSocket(SocketType.PUSH);
+                sender.connect("tcp://localhost:5558");
 
-            int id = Integer.parseInt(p.split(",")[0]);
-            int numberOfWorkers = Integer.parseInt(p.split(",")[1]);
+                //anmeldung
+                sender.send("0");
 
-            String challenge = null;
-            while (challenge == null) {
-                challenge = receiver.recvStr();
-                if(challenge.split(",").length > 1) {
-                    challenge = null;
-                }
-            }
-            System.out.println("Searching for solution for challenge " + challenge + "...");
-            try{
+                //  Socket to receive messages on
+                ZMQ.Socket receiver = context.createSocket(SocketType.PULL);
+                receiver.connect("tcp://localhost:5557");
 
 
-                boolean found = false;
-                ArrayList<Future<FoundValue>> futures = new ArrayList();
-                for(int i = 0; i < numberOfThreads; i++) {
-                    futures.add(pool.submit(new MiningThread(challenge, i+numberOfThreads*id, numberOfThreads*numberOfWorkers)));
-                }
-                while(!found) {
-                    for(Future<FoundValue> future : futures) {
-                        if(future.isDone()) {
-                            found = true;
-                            System.out.println("Lösung gefunden: " + future.get().getResult());
-                            sender.send(future.get().getResult().getBytes(), 0);
-                            //byte[] reply = req.recv(0);
-                            //System.out.println("Serverantwort: " + new String(reply));
-                            break;
+                //while(true) {
+
+                    String p = receiver.recvStr();
+
+                    int id = Integer.parseInt(p.split(",")[0]);
+                    int numberOfWorkers = Integer.parseInt(p.split(",")[1]);
+
+                    String challenge = null;
+                    while (challenge == null) {
+                        challenge = receiver.recvStr();
+                        if (challenge.split(",").length > 1) {
+                            challenge = null;
                         }
                     }
-                }
-                for(Future<FoundValue> future : futures) {
-                    future.cancel(true);
-                }
-                pool.shutdownNow();
-            } catch (NoSuchAlgorithmException | InterruptedException | ExecutionException e) {
-                e.printStackTrace();
-            }
+                    System.out.println("Searching for solution for challenge " + challenge + "...");
+                    try {
 
+                        boolean found = false;
+                        ArrayList<Future<FoundValue>> futures = new ArrayList();
+                        for (int i = 0; i < numberOfThreads; i++) {
+                            futures.add(
+                                pool.submit(new MiningThread(challenge, i + numberOfThreads * id,
+                                    numberOfThreads * numberOfWorkers)));
+                        }
+                        while (!found) {
+                            for (Future<FoundValue> future : futures) {
+                                if (future.isDone()) {
+                                    found = true;
+                                    System.out
+                                        .println("Lösung gefunden: " + future.get().getResult());
+                                    sender.send(future.get().getResult().getBytes(), 0);
+                                    //byte[] reply = req.recv(0);
+                                    //System.out.println("Serverantwort: " + new String(reply));
+                                    break;
+                                }
+                            }
+                        }
+                        for (Future<FoundValue> future : futures) {
+                            future.cancel(true);
+                        }
+                        pool.shutdownNow(); // out of loop ?
+                    } catch (NoSuchAlgorithmException | InterruptedException | ExecutionException e) {
+                        e.printStackTrace();
+                    }
+                //}
 
-            System.out.println("Closing worker.");
 
 
         }
