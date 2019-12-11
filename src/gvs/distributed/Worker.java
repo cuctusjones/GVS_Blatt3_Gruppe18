@@ -51,6 +51,9 @@ public class Worker {
             int numberOfWorkers = Integer.parseInt(p.split(",")[1]);
 
             String challenge = receiver.recvStr();
+            if(challenge.split(",").length > 1) {
+                challenge = receiver.recvStr();
+            }
             System.out.println("Searching for solution for challenge " + challenge + "...");
             try{
 
