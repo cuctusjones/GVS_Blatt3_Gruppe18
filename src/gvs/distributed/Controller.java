@@ -1,5 +1,7 @@
 package gvs.distributed;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Random;
 
@@ -21,63 +23,72 @@ public class Controller
     {
         try (ZContext context = new ZContext()) {
 
-            int numberOfWorkers=0;
+            int connectedWorkers=0;
+            int numberOfWorkers = 0;
 
-            //macht keinen sinn oder ? wir haben ja keinen bezug zu den workern
-            //wie schicken wir etwas an nen bestimmten worker, va aufm localhost verschiedene ports ?
-            //ArrayList<Worker> workers= new ArrayList<>();
+
 
             //receiver for login and results
             Socket receiver = context.createSocket(SocketType.PULL);
             receiver.bind("tcp://localhost:5558");
 
-            while(true){
-                if(receiver.recvStr().equals("0")){
-                    numberOfWorkers++;
-                }
 
 
-                break;
-            }
+            //set number of workers
+            BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+            System.out.println("Please enter a number of workers you want to connect.");
+            numberOfWorkers = Integer.parseInt(reader.readLine());
 
-
+            System.out.println("Get challenge...");
             // receive challenge
             Socket challengeReceiver = context.createSocket(SocketType.SUB);
             challengeReceiver.connect("tcp://gvs.lxd-vs.uni-ulm.de:27341");
             challengeReceiver.subscribe(ZMQ.SUBSCRIPTION_ALL);
+            Socket resultSender = context.createSocket(SocketType.REQ);
+            resultSender.connect("tcp://gvs.lxd-vs.uni-ulm.de:27349");
 
             String challenge = challengeReceiver.recvStr();
             System.out.println("Die Herausforderung ist: " + challenge);
 
-
-
-
             //  Socket to send messages on
-            ZMQ.Socket challengeDistributer = context.createSocket(SocketType.PUSH);
+            Socket challengeDistributer = context.createSocket(SocketType.PUSH);
             challengeDistributer.bind("tcp://localhost:5557");
-            System.out.println("Sending tasks to workers\n");
+
+
+            //each worker which connects gets a partition
+            while (connectedWorkers != numberOfWorkers) {
+
+
+                if(receiver.recvStr().equals("0")){
+
+                    System.out.println("A worker has connected.");
+
+                    challengeDistributer.send(connectedWorkers+","+numberOfWorkers);
+                    connectedWorkers++;
+
+
+                }
 
 
 
+            }
 
 
+            System.out.println("Send tasks to workers.");
+            challengeDistributer.send(challenge);
 
 
             //  get result
-            String result = new String(receiver.recv(0), ZMQ.CHARSET);
-
-
-            Socket resultSender = context.createSocket(SocketType.REQ);
-            resultSender.connect("tcp://gvs.lxd-vs.uni-ulm.de:27349");
-
-            resultSender.send(result);
+            String result = receiver.recvStr();
+            System.out.println("A worker found a solution: "+result);
+            resultSender.send(result.getBytes());
 
 
             byte[] reply = resultSender.recv(0);
             System.out.println("Serverantwort: " + new String(reply));
 
 
-
+            //TODO: terminate all workers
 
 
 

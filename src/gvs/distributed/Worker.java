@@ -40,20 +40,25 @@ public class Worker {
             //anmeldung
             sender.send("0");
 
-            int workerID;
+
             //  Socket to receive messages on
             ZMQ.Socket receiver = context.createSocket(SocketType.PULL);
             receiver.connect("tcp://localhost:5557");
 
-            String challenge = receiver.recvStr();
+            String p = receiver.recvStr();
 
+            int id = Integer.parseInt(p.split(",")[0]);
+            int numberOfWorkers = Integer.parseInt(p.split(",")[1]);
+
+            String challenge = receiver.recvStr();
+            System.out.println("Searching for solution for challenge " + challenge + "...");
             try{
 
 
                 boolean found = false;
                 ArrayList<Future<FoundValue>> futures = new ArrayList();
                 for(int i = 0; i < numberOfThreads; i++) {
-                    futures.add(pool.submit(new MiningThread(challenge, i, numberOfThreads)));
+                    futures.add(pool.submit(new MiningThread(challenge, i+numberOfThreads*id, numberOfThreads*numberOfWorkers)));
                 }
                 while(!found) {
                     for(Future<FoundValue> future : futures) {
@@ -76,26 +81,9 @@ public class Worker {
             }
 
 
+            System.out.println("Closing worker.");
 
 
-
-
-
-
-            //  Process tasks forever
-            /*while (!Thread.currentThread().isInterrupted()) {
-                String string = new String(receiver.recv(0), ZMQ.CHARSET).trim();
-                long msec = Long.parseLong(string);
-                //  Simple progress indicator for the viewer
-                System.out.flush();
-                System.out.print(string + '.');
-
-                //  Do the work
-                Thread.sleep(msec);
-
-                //  Send results to sink
-                sender.send(ZMQ.MESSAGE_SEPARATOR, 0);
-            }*/
         }
     }
 }
